@@ -4011,7 +4011,7 @@
   }
 
   // ---------- secret codes: "pikalol_admin" unlocks the admin panel (F2 or the ADMIN button) ----------
-  const admin = { on: !!store.get('tb-admin', false), fly: false, flyH: 0, freeze: false };
+  const admin = { unlocked: !!store.get('tb-admin-unlocked', store.get('tb-admin', false)), on: !!store.get('tb-admin', false), fly: false, flyH: 0, freeze: false };
   (() => {
     const st = document.createElement('style');
     st.textContent = `
@@ -4052,23 +4052,45 @@
       <div class="row2" style="margin-top:6px"><input id="adminCoins" type="number" min="0" step="100" placeholder="Set coins to…" aria-label="Set coins to"><button data-a="setc">Set</button></div>
       <div class="note" id="adminNote"></div>
       <div class="sec">Admin</div>
-      <div class="g"><button data-a="lock">Turn admin off</button></div>`;
+      <div class="g"><button data-a="lock">Turn admin off (M)</button></div>`;
     document.body.append(btn, pan);
     btn.addEventListener('click', () => { pan.hidden = !pan.hidden; syncAdmin(); });
     pan.addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (b) adminAct(b.dataset.a); });
-    addEventListener('keydown', e => { if (e.code === 'F2' && admin.on) { e.preventDefault(); pan.hidden = !pan.hidden; syncAdmin(); } });
+    addEventListener('keydown', e => {
+      if (e.code === 'F2' && admin.on) { e.preventDefault(); pan.hidden = !pan.hidden; syncAdmin(); return; }
+      // M turns admin on and off once the code has been entered (not while typing, and not when M is someone's key in this mode)
+      if (e.code !== 'KeyM' || e.repeat || !admin.unlocked || rebinding) return;
+      const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const hit = findBind('KeyM'); if (hit && playerActive(hit.p) && game.state !== 'title') return;
+      setAdmin(!admin.on);
+    });
     $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tryCode(); } });
     $('codeBtn').addEventListener('click', tryCode);
     function tryCode() {
       const c = $('codeInput').value.trim().toLowerCase(); $('codeInput').value = '';
       if (c === 'pikalol_admin') {
-        admin.on = true; store.set('tb-admin', true); btn.hidden = false; pan.hidden = false; syncAdmin();
-        toast('Admin unlocked', 'Press F2 or the ADMIN button any time.', '★'); sfxCash();
+        admin.unlocked = true; store.set('tb-admin-unlocked', true); setAdmin(true, true); pan.hidden = false; syncAdmin();
+        toast('Admin unlocked', 'M turns it on and off. F2 or the ADMIN button opens the panel.', '★'); sfxCash();
       } else if (c) { toast('Wrong code', 'That code does not do anything.', '!'); sfxNope(); }
     }
     btn.hidden = !admin.on;
   })();
   const adminMe = () => localIndex() === 0 ? p1 : p2;
+  function setAdmin(on, quiet) {
+    admin.on = on; store.set('tb-admin', on);
+    $('adminBtn').hidden = !on; if (!on) $('adminPanel').hidden = true;
+    if (!on) {
+      if (admin.fly) adminAct('fly');
+      admin.freeze = false;
+      for (const w of [p1, p2]) {
+        w.god = false;
+        if (w.adminSpeed) { w.adminSpeed = false; w.stats.speed *= .5; }
+        if (w.adminGiant) { w.adminGiant = false; w.root.scale.setScalar(w.cfg.scale || 1); }
+      }
+    }
+    if (!quiet) { toast(on ? 'Admin on' : 'Admin off', on ? 'F2 or the ADMIN button opens the panel. M turns it off.' : 'All powers off. Press M to turn admin back on.', on ? '★' : '!'); on ? sfxCash() : sfxNope(); }
+    syncAdmin();
+  }
   function adminAct(a) {
     const me = adminMe(), o = me.opp, fighting = game.state === 'fight';
     const guest = game.mode === 'online' && net && net.role === 'guest';
@@ -4112,11 +4134,7 @@
         for (const u of UPGRADES) prof.up[u.id] = UP_COST.length;
         coins(prof.coins); toast('Everything unlocked', 'All finishers, cosmetics and max upgrades.', '★');
         break;
-      case 'lock':
-        admin.on = false; store.set('tb-admin', false); $('adminPanel').hidden = true; $('adminBtn').hidden = true;
-        if (admin.fly) adminAct('fly');
-        toast('Admin off', 'Type the code again to turn it back on.', '!');
-        return;
+      case 'lock': setAdmin(false); return;
     }
     syncAdmin();
   }
