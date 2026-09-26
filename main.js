@@ -2,7 +2,9 @@ const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
 // keep the game loop running when the window is covered or minimized (an online host must keep simulating)
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+// WebRtcHideLocalIpsWithMdns off: offer the PC's real network addresses (including a Radmin VPN / ZeroTier / LAN adapter),
+// so two friends on the same virtual network can connect directly when their routers block each other
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,WebRtcHideLocalIpsWithMdns');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 
