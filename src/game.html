@@ -1256,6 +1256,74 @@
     }
     for (let i = extras.length - 1; i >= 0; i--) if (!extras[i].update(dt)) extras.splice(i, 1);
   }
+  // ---------- Gojo's Domain Expansion: the Infinite Void (visual side; mirrored to the online guest) ----------
+  const domainFx = (() => {
+    const g = new THREE.Group(); g.visible = false;
+    // sky: the inside of a huge sphere, black with a thin band of deep blue light round the horizon
+    const c = document.createElement('canvas'); c.width = 8; c.height = 512; const x = c.getContext('2d');
+    const gr = x.createLinearGradient(0, 0, 0, 512);
+    gr.addColorStop(0, '#000002'); gr.addColorStop(.38, '#01030f'); gr.addColorStop(.47, '#06164f'); gr.addColorStop(.5, '#1b4dd6');
+    gr.addColorStop(.53, '#06164f'); gr.addColorStop(.62, '#01030f'); gr.addColorStop(1, '#000002');
+    x.fillStyle = gr; x.fillRect(0, 0, 8, 512);
+    const skyTex = new THREE.CanvasTexture(c); skyTex.encoding = THREE.sRGBEncoding;
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(80, 32, 24), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, depthWrite: false })));
+    // endless stars, white and pale blue
+    const N = 3000, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const u = Math.random() * 2 - 1, a = Math.random() * PI * 2, r = 18 + Math.random() * 55, s = Math.sqrt(1 - u * u);
+      pos.set([Math.cos(a) * s * r, u * r * .8 + 4, Math.sin(a) * s * r], i * 3);
+      const b = .6 + Math.random() * 1.8, blue = Math.random();
+      col.set([b * (.55 + .45 * blue), b * (.75 + .25 * blue), b * 1.6], i * 3);
+    }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: .22, vertexColors: true, transparent: true, depthWrite: false, fog: false, toneMapped: false, blending: THREE.AdditiveBlending }));
+    g.add(stars);
+    // a slowly turning blue galaxy swirl far overhead
+    const M = 2200, gp = new Float32Array(M * 3), gc = new Float32Array(M * 3);
+    for (let i = 0; i < M; i++) {
+      const arm = i % 3, t = Math.random(), ang = arm * PI * 2 / 3 + t * 5.5 + (Math.random() - .5) * .5, r = 2 + t * 26;
+      gp.set([Math.cos(ang) * r, (Math.random() - .5) * 1.2, Math.sin(ang) * r], i * 3);
+      const k = 1.8 * (1 - t) + .3; gc.set([.25 * k, .55 * k, 2.2 * k], i * 3);
+    }
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(gp, 3)); gg.setAttribute('color', new THREE.BufferAttribute(gc, 3));
+    const galaxy = new THREE.Points(gg, new THREE.PointsMaterial({ size: .35, vertexColors: true, transparent: true, depthWrite: false, fog: false, toneMapped: false, blending: THREE.AdditiveBlending }));
+    galaxy.position.set(0, 26, -18); galaxy.rotation.x = .9; g.add(galaxy);
+    // glassy black floor with glowing blue rings
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 72), new THREE.MeshStandardMaterial({ color: 0x010206, roughness: .3, metalness: .4, envMapIntensity: .35 }));
+    floor.rotation.x = -PI / 2; floor.position.y = .002; floor.receiveShadow = true; g.add(floor);
+    const rings = [];
+    for (const r of [1.4, 3.2, 5.2, 7.6, 10.5]) {
+      const m = new THREE.Mesh(new THREE.RingGeometry(r, r + .05, 128), new THREE.MeshBasicMaterial({ color: new THREE.Color(.35, .9, 3.2), transparent: true, opacity: .6, toneMapped: false, depthWrite: false, side: THREE.DoubleSide }));
+      m.rotation.x = -PI / 2; m.position.y = .012; g.add(m); rings.push(m);
+    }
+    const glow = new THREE.PointLight(0x5a8cff, 2.2, 28, 1.6); glow.position.set(0, 7, 0); g.add(glow);
+    scene.add(g);
+    return { g, stars, galaxy, rings };
+  })();
+  let domainSaved = null;
+  function domainFx_(on) {
+    if (on && !domainSaved) {
+      domainSaved = { vis: CLASSIC.map(o => o.visible), arena: arenaObj ? arenaObj.visible : false, ref: ref.root.visible, bg: scene.background, fog: scene.fog, exp: renderer.toneMappingExposure, lights: [], weps: [] };
+      CLASSIC.forEach(o => { o.visible = false; }); if (arenaObj) arenaObj.visible = false; ref.root.visible = false;
+      // the arena's stage lights would paint the void floor: keep a soft key light on the fighters, drop the rest
+      scene.children.forEach(o => { if (o.isLight && o !== hemi) { domainSaved.lights.push([o, o.intensity]); o.intensity *= o === spot ? .55 : (o === camKey || o === camRim) ? 1.15 : 0; } });
+      for (const w of weapons) if (!w.holder && w.mesh.visible) { w.mesh.visible = false; domainSaved.weps.push(w); }
+      scene.background = new THREE.Color(0x000002); scene.fog = new THREE.Fog(0x000004, 40, 110); renderer.toneMappingExposure = 1.05;
+      domainFx.g.visible = true; flash_(.9);
+    } else if (!on && domainSaved) {
+      const s = domainSaved; domainSaved = null;
+      CLASSIC.forEach((o, i) => { o.visible = s.vis[i]; }); if (arenaObj) arenaObj.visible = s.arena; ref.root.visible = s.ref;
+      for (const [l, v] of s.lights) l.intensity = v;
+      for (const w of s.weps) if (w.alive) w.mesh.visible = true;
+      scene.background = s.bg; scene.fog = s.fog; renderer.toneMappingExposure = s.exp;
+      domainFx.g.visible = false; flash_(.7);
+    }
+  }
+  function updateDomainFx(dt) {
+    if (!domainFx.g.visible) return;
+    domainFx.stars.rotation.y += dt * .015; domainFx.galaxy.rotation.y += dt * .08;
+    domainFx.rings.forEach((m, i) => { m.material.opacity = .35 + .3 * Math.sin(performance.now() / 500 - i * .9); m.rotation.z += dt * (i % 2 ? .1 : -.1); });
+  }
   // Pennywise's red balloon: rises from the victim's feet, then pops
   const balloonFx = (() => {
     const g = new THREE.Group();
@@ -1268,6 +1336,7 @@
   function balloon_(x, z) { balloonFx.position.set(x, 0, z); balloonFx.userData.life = 2.1; balloonFx.visible = true; }
   function updateFx(dt) {
     updateSpecialFx(dt);
+    updateDomainFx(dt);
     glowP.update(dt); bitsP.update(dt); updateBursts(dt); updateEmitters(dt);
     if (balloonFx.visible) {
       const u = balloonFx.userData; u.life -= dt;
@@ -1861,6 +1930,7 @@
     }
     update(dt, I) {
       this.t += dt;
+      if (game.domain && game.domain.v === this) I = { ...I, punch: false, kick: false, grab: false, special: false, dodge: false }; // stunned in the void
       const o = this.opp;
       if (this.dodgeCd > 0) this.dodgeCd -= dt;
       if (this.comboT > 0 && (this.comboT -= dt) <= 0) this.combo = 0;
@@ -1874,7 +1944,8 @@
           const sp = 3.1 * this.stats.speed * Math.min(1, m); mvx = I.mx / m * sp; mvz = I.mz / m * sp;
           this.walkPh += dt * 10; if (this.state !== 'walk') this.set('walk');
         } else if (this.state !== 'idle') this.set('idle');
-        if (I.special && this.sp >= 100) {
+        if (I.special && inDomain(this)) domainBlast(this);
+        else if (I.special && this.sp >= 100) {
           const k = this.cfg.special;
           if (SPECIALS[k] && SPECIALS[k].ranged) startSpecial(this, k); else { this.fin = true; this.set('grabWind'); }
         }
@@ -1893,6 +1964,7 @@
           this.dodgeCd = .6; this.perfected = false; this.set('dodge'); sfxDodge();
         }
         else if (I.punch) {
+          if (inDomain(this)) domainBlink(this);
           if (this.weapon) this.set('swing');
           else {
             // punches thrown in quick succession: every third one is a haymaker
@@ -1985,7 +2057,7 @@
   let bossIdx = clamp(store.get('tb-boss', 0) | 0, 0, BOSSES.length - 1);
   let beaten = store.get('tb-beaten', {}) || {};
   // CPU impact sparks match their signature move
-  const FX_BY_SPECIAL = { ice: 'frost', hollow: 'void', doom: 'toxic', omni: 'inferno', clown: 'inferno', combo: 'gold', ball: 'gold', gum: 'inferno' };
+  const FX_BY_SPECIAL = { ice: 'frost', hollow: 'void', domain: 'void', doom: 'toxic', omni: 'inferno', clown: 'inferno', combo: 'gold', ball: 'gold', gum: 'inferno' };
   const bossCfg = i => ({ name: BOSSES[i].name, ...BOSSES[i].look, stats: BOSSES[i].stats, model: BOSSES[i].model,
     fx: FX_BY_SPECIAL[BOSSES[i].look.special] || (BOSSES[i].id === 'kaiju' ? 'void' : 'classic') });
 
@@ -2169,7 +2241,7 @@
     if (!reduceMotion) game.slow = Math.max(game.slow, .45);
   }
   function strike(a, v, o) {
-    const mult = dmgMult(a, v);
+    const mult = dmgMult(a, v) * (inDomain(a) ? 1.4 : 1);
     if (v.lying()) {
       if (o.type !== 'kick' || v.state !== 'down') return;
       const c = v.center();
@@ -2275,6 +2347,8 @@
     cyclone: { name: 'SPIN CYCLONE!', ranged: true, dur: 2 },
     thunder: { name: 'THUNDER CLAP!', ranged: true, dur: 1.5 },
     hollow: { name: 'HOLLOW PURPLE!', ranged: true, dur: 1.9 },
+    domain: { name: 'DOMAIN EXPANSION!', ranged: true, dur: 1.5 },
+    domainBlast: { name: 'HOLLOW PURPLE!', ranged: true, dur: .45 },
     ball: { name: 'GOLAZO!', ranged: true, dur: 1.3 },
     gum: { name: 'GUM-GUM PISTOL!', ranged: true, dur: 1.2 },
     ice: { name: 'ICE BLAST!', ranged: true, dur: 2.4 },
@@ -2286,12 +2360,75 @@
   };
   const hittable = v => ['idle', 'walk', 'punch', 'kick', 'grabWind', 'whiff', 'hurt', 'swing', 'pickup', 'special', 'getup', 'dodge'].includes(v.state) && !invuln(v);
   let shotSeq = 0;
+  // ---------- Domain Expansion (host logic): Gojo floats, blinks in to punch, and can blast them. Only inside the domain. ----------
+  const DOMAIN_TIME = 12, DOMAIN_SLOW = .45;
+  function startDomain(a) {
+    if (game.domain) return;
+    const v = a.opp;
+    game.domain = { a, v, t: 0, blastCd: .6, h: 1.3, blast: null };
+    // pull both into the middle of the void, facing each other
+    a.root.position.set(-1.8, 0, 0); a.facing = PI / 2;
+    if (!v.lying() && v.state !== 'lifted') { v.root.position.set(1.8, 0, 0); v.facing = -PI / 2; if (v.state !== 'frozen') v.set('idle'); }
+    v.stats.speed *= DOMAIN_SLOW; v.domainSlow = true; // drowning in infinite information
+    emit('domainFx', true); banner('INFINITE VOID'); setScreen('INFINITE VOID', a.name);
+    sfxBlast(); shake = reduceMotion ? 0 : .5; excite = 1;
+  }
+  function endDomain() {
+    const d = game.domain; if (!d) return;
+    game.domain = null;
+    if (d.v.domainSlow) { d.v.domainSlow = false; d.v.stats.speed /= DOMAIN_SLOW; }
+    if (d.a.domainHover) { d.a.domainHover = false; d.a.manualBody = false; }
+    if (d.blast) fxShotEnd(d.blast.id);
+    emit('domainFx', false);
+  }
+  const inDomain = w => !!(game.domain && game.domain.a === w);
+  // punches from range: Gojo blinks right in front of them first
+  function domainBlink(a) {
+    const o = a.opp, dx = o.x - a.x, dz = o.z - a.z, d = Math.hypot(dx, dz);
+    if (d < 1.6 || d > 9) return;
+    spark(a.x, 1.6, a.z, false);
+    const k = (d - 1.1) / d; a.root.position.x += dx * k; a.root.position.z += dz * k; a.facing = Math.atan2(dx, dz);
+    spark(a.x, 1.6, a.z, false); sfxWhoosh();
+  }
+  // the special button inside the domain: a purple blast that explodes on them
+  function domainBlast(a) {
+    const d = game.domain; if (!d || d.blastCd > 0 || d.blast) return;
+    const o = a.opp, dx = o.x - a.x, dz = o.z - a.z, dist = Math.hypot(dx, dz) || 1, speed = 20;
+    a.facing = Math.atan2(dx, dz); a.set('special'); a.sk = 'domainBlast'; a.fx = {};
+    const id = ++shotSeq, life = dist / speed;
+    fxShot('hollow', id, a.x + dx / dist * .6, 1.4, a.z + dz / dist * .6, dx / dist, dz / dist, speed, life + .1);
+    d.blast = { id, t: life }; d.blastCd = 2.4;
+    sfxCharge(.35); banner('HOLLOW PURPLE!');
+  }
+  function domainExplode(a) {
+    const o = a.opp, dx = o.x - a.x, dz = o.z - a.z, d = Math.hypot(dx, dz) || 1;
+    fxFlash(.35); sfxBlast(); shake = reduceMotion ? 0 : .9; excite = 1;
+    spark(o.x, 1.4, o.z, true); spark(o.x, .6, o.z, true); spark(o.x, 2.2, o.z, true);
+    for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; dust(o.x + Math.cos(an) * 1.2, o.z + Math.sin(an) * 1.2, true); }
+    if (!['ko', 'pinned', 'lose'].includes(o.state) && !invuln(o)) launch(a, o, o.x + dx / d * 3.5, o.z + dz / d * 3.5, 3, 1, 30, true);
+  }
+  function updateDomain(dt) {
+    const d = game.domain; if (!d) return;
+    d.t += dt; d.blastCd = Math.max(0, d.blastCd - dt);
+    if (d.t >= DOMAIN_TIME || ko || pin || game.state !== 'fight') { endDomain(); if (game.state === 'fight' && !ko && !pin) banner('DOMAIN CLOSED'); return; }
+    const a = d.a;
+    if (d.blast && (d.blast.t -= dt) <= 0) { fxShotEnd(d.blast.id); d.blast = null; domainExplode(a); }
+    // Gojo floats; player 1 can fly higher or lower with E / Q
+    if (!a.lying() && a.state !== 'slam' && a.state !== 'lifted') {
+      const up = a === p1 && a.human ? (held.KeyE ? 1 : 0) - (held.KeyQ ? 1 : 0) : 0;
+      d.h = clamp(d.h + up * 4 * dt, .3, 5);
+      a.domainHover = true; a.manualBody = true;
+      a.body.position.y = d.h + Math.sin(T * 2.2) * .12; a.body.rotation.x = 0;
+    } else if (a.domainHover) { a.domainHover = false; a.manualBody = false; }
+  }
+
   function startSpecial(a, kind) {
     dropWeapon(a, false);
     a.set('special'); a.sk = kind; a.sp = 0; a.fx = {}; a.fins++;
     const o = a.opp; a.facing = Math.atan2(o.x - a.x, o.z - a.z);
     const nm = SPECIALS[kind].name; banner(nm); setScreen(nm, a.name); excite = 1;
     if (kind === 'hollow') sfxCharge(.9);
+    if (kind === 'domain') { sfxCharge(1.1); darkFx(1.2); }
     if (kind === 'doom') { sfxCharge(1.1); darkFx(1.1); }
     if (kind === 'snack') fxSnack(whoIs(a));
     if (kind === 'spear') sfxWhoosh();
@@ -2351,6 +2488,9 @@
       return false;
     };
     switch (K) {
+      case 'domain': // the hand sign, then the world turns into the void
+        if (t < 1.1) turn(6); else if (!f.opened) { f.opened = true; startDomain(a); }
+        break;
       case 'hollow': // red and blue collide into a purple orb that tears across the ring
         if (t < .9) turn(8);
         fire('hollow', .9, 1.5, 13, 1);
@@ -2482,6 +2622,11 @@
   }
   function specialPose(w, P, t) {
     switch (w.sk) {
+      case 'domain':
+        if (t < 1.1) { P.sR = -2.3; P.eR = -1.5; P.szR = -.2; P.sL = .05; P.szL = .15; P.eL = -.2; P.lean = -.05; P.twist = .2; }
+        else { P.sL = P.sR = -1.3; P.szL = P.szR = 1.2; P.eL = P.eR = -.1; P.lean = -.1; P.twist = 0; }
+        break;
+      case 'domainBlast': P.sR = -1.6; P.eR = -.02; P.szR = .02; P.twist = .6; P.lean = .25; break;
       case 'hollow':
         if (t < .9) { P.sL = P.sR = -1.25; P.szL = P.szR = -.2; P.eL = P.eR = -1.3; P.lean = 0; P.kL = P.kR = .5; P.twist = 0; }
         else { P.sL = P.sR = -1.6; P.szL = P.szR = -.1; P.eL = P.eR = -.05; P.lean = .35; P.twist = 0; }
@@ -2840,6 +2985,7 @@
     me.aiCd -= dt; me.strafeT -= dt;
     if (me.strafeT <= 0) { me.strafe = (Math.random() - .5) * 1.8; me.strafeT = .8 + Math.random() * 1.2; }
     if (!(me.state === 'idle' || me.state === 'walk')) return I;
+    if (inDomain(me) && game.domain.blastCd <= 0 && !game.domain.blast && Math.random() < dt * 1.5) { I.special = true; return I; }
     if (p.state === 'down') {
       const c = p.center(), dx = c.x - me.x, dz = c.z - me.z, d = Math.hypot(dx, dz) || 1;
       if (d > 1.5) { I.mx = dx / d; I.mz = dz / d; }
@@ -3564,7 +3710,7 @@
     banner: banner_, showCount: showCount_, setScreen: setScreen_, spark: spark_, dust: dust_, bell: bell_,
     sfxHit: sfxHit_, sfxSlam: sfxSlam_, sfxSlap: sfxSlap_, sfxGrunt: sfxGrunt_, sfxCrowdPop: sfxCrowdPop_, sfxClang: sfxClang_,
     sfxWhoosh: sfxWhoosh_, sfxCharge: sfxCharge_, sfxBlast: sfxBlast_, sfxBall: sfxBall_, sfxFreeze: sfxFreeze_, sfxShatter: sfxShatter_,
-    fxShot: shot_, fxShotEnd: shotEnd_, fxArm: arm_, fxWeb: web_, fxIce: ice_, fxSnack: snack_, fxFlash: flash_,
+    fxShot: shot_, fxShotEnd: shotEnd_, fxArm: arm_, fxWeb: web_, fxIce: ice_, fxSnack: snack_, fxFlash: flash_, domainFx: domainFx_,
     sfxLaugh: sfxLaugh_, darkFx: darkFx_, balloon: balloon_,
     fxBolt: bolt_, fxPyro: pyro_, fxConfetti: confetti_, sfxDodge: sfxDodge_, sfxRage: sfxRage_, sfxThunder: sfxThunder_,
     combo: combo_, dmgNum: dmgNum_, perfect: perfect_, ach: (who, id) => { if (isLocal(who)) unlock(id); },
@@ -4300,6 +4446,7 @@
       separate(); keepInRing(p1); keepInRing(p2);
       updateFlights();
       adminFrame(dt);
+      updateDomain(dt);
       updateWeapons(dt);
       updateRef(dt);
       updateCrowd(dt, T);
@@ -4349,6 +4496,8 @@
       desired = new THREE.Vector3(mx * .6, (5.4 + lift) * far * zoom, mz * .5 + (12.5 + lift * .6) * far * zoom);
       look = new THREE.Vector3(mx * .85, 1, mz * .85);
     }
+    { const hv = Math.max(...[p1, p2].map(w => w.lying() ? 0 : Math.max(0, w.body.position.y)));
+      if (hv > .4 && !slammer && game.state !== 'title') { desired.y += hv * .7; look.y += hv * .55; } }
     if (camOverride) { desired = camOverride(); look = desired.look; } // test hook: fixed camera for screenshots
     const ck = cut ? 1 : Math.min(1, realDt * (slammer ? 5 : 2.5));
     camera.position.lerp(desired, ck);
