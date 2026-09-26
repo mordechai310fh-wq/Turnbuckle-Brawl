@@ -16,6 +16,7 @@ const copies = {
   'ShaderPass.js': 'three/examples/js/postprocessing/ShaderPass.js',
   'UnrealBloomPass.js': 'three/examples/js/postprocessing/UnrealBloomPass.js',
   'peerjs.min.js': 'peerjs/dist/peerjs.min.js',
+  'mqtt.min.js': 'mqtt/dist/mqtt.min.js',
   'GLTFLoader.js': 'three/examples/js/loaders/GLTFLoader.js',
   'SkeletonUtils.js': 'three/examples/js/utils/SkeletonUtils.js',
 };
@@ -26,7 +27,7 @@ html = html.replace(/<script src="https:\/\/[^"]+\/([A-Za-z]+(?:\.min)?\.js)"><\
   if (!copies[file]) throw new Error('No bundled copy for ' + m);
   return `<script src="vendor/${file}"></script>`;
 });
-html = html.replace('<script src="vendor/three.min.js"></script>', '<script src="vendor/peerjs.min.js"></script>\n<script src="vendor/three.min.js"></script>');
+html = html.replace('<script src="vendor/three.min.js"></script>', '<script src="vendor/peerjs.min.js"></script>\n<script src="vendor/mqtt.min.js"></script>\n<script src="vendor/three.min.js"></script>');
 // 3D character models: copy the converted .glb files and write the roster the game reads
 const roster = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'roster.json'), 'utf8'));
 const modelsOut = path.join(root, 'app', 'models');

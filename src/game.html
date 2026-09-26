@@ -3162,6 +3162,7 @@
     const n = net; net = null;
     clearInterval(n.tick); clearTimeout(n.slow);
     try { if (n.conn) n.conn.close(); } catch (e) {}
+    try { if (n.relay && n.relay !== n.conn) n.relay.close(); } catch (e) {}
     try { if (n.peer) n.peer.destroy(); } catch (e) {}
   }
   // several STUN servers find a direct route between two homes faster; the TURN relays carry the match when no direct route exists
@@ -3170,6 +3171,51 @@
     { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
   ] } };
+  // ---------- backup route: when two homes can't link directly (and the free TURN relays are gone), carry the match
+  // through public MQTT message servers. Every message goes to two servers; the receiver drops the duplicate. ----------
+  const RELAY_URLS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
+  const relayReady = () => typeof mqtt !== 'undefined';
+  class RelayConn {
+    constructor(code, role) {
+      this.relay = true; this.open = false; this.closed = false; this.h = {}; this.queue = [];
+      const base = 'turnbuckle-brawl/v2/' + code + '/';
+      this.inTopic = base + (role === 'host' ? 'g2h' : 'h2g'); this.outTopic = base + (role === 'host' ? 'h2g' : 'g2h');
+      this.id = Math.random().toString(36).slice(2, 10); this.seq = 0; this.lastSeq = -1; this.other = null; this.last = 0;
+      this.clients = RELAY_URLS.map((u, i) => {
+        const c = mqtt.connect(u, { clientId: 'tb' + this.id + i, reconnectPeriod: 2000, connectTimeout: 8000, clean: true });
+        c.on('connect', () => c.subscribe(this.inTopic));
+        c.on('message', (t, buf) => this.recv(buf));
+        c.on('error', () => {});
+        return c;
+      });
+      // keep-alive both ways; if the other side goes quiet for 10 s, they're gone
+      this.ping = setInterval(() => { this.raw({ k: 'p' }); if (this.open && performance.now() - this.last > 10000) this.close(); }, 1500);
+    }
+    on(ev, fn) { this.h[ev] = fn; if (ev === 'data') { const q = this.queue; this.queue = []; q.forEach(d => fn(d)); } }
+    emit(ev, a) { const f = this.h[ev]; if (f) f(a); else if (ev === 'data') this.queue.push(a); }
+    raw(m) {
+      if (this.closed) return;
+      m.i = this.id; m.s = ++this.seq; const s = JSON.stringify(m);
+      for (const c of this.clients) if (c.connected) c.publish(this.outTopic, s);
+    }
+    send(d) { this.raw({ k: 'd', d }); }
+    recv(buf) {
+      let m; try { m = JSON.parse(buf.toString()); } catch (e) { return; }
+      if (!m || m.i === this.id || typeof m.s !== 'number') return;
+      if (this.other && m.i !== this.other) return; // only talk to the first player who answered
+      if (!this.other) this.other = m.i;
+      if (m.s <= this.lastSeq) return; // the copy from the second server
+      this.lastSeq = m.s; this.last = performance.now();
+      if (!this.open) { this.open = true; this.emit('open'); }
+      if (m.k === 'd') this.emit('data', m.d); else if (m.k === 'x') this.close();
+    }
+    close() {
+      if (this.closed) return;
+      this.raw({ k: 'x' }); this.closed = true; this.open = false; clearInterval(this.ping);
+      setTimeout(() => this.clients.forEach(c => { try { c.end(true); } catch (e) {} }), 300);
+      this.emit('close');
+    }
+  }
   const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const newCode = () => Array.from({ length: 5 }, () => CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]).join('');
   const netErr = e => (e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error')
@@ -3184,7 +3230,11 @@
     peer.on('call', onIncomingCall);
     peer.on('open', () => { if (net === n) { clearTimeout(n.slow); netStatus(`Your room code<span class="code">${code}</span>Send it to your friend, then wait here for them to join.`); } });
     n.slow = setTimeout(() => { if (net === n && !peer.open) netStatus('The matchmaking server is slow right now, still opening your room…'); }, 6000);
-    peer.on('connection', conn => { if (net !== n || n.conn) { conn.close(); return; } wireConn(n, conn); });
+    peer.on('connection', conn => { if (net !== n || n.open) { conn.close(); return; } wireConn(n, conn); });
+    if (relayReady()) {
+      const r = n.relay = new RelayConn(code, 'host');
+      r.on('open', () => { if (net !== n || n.open) { r.close(); return; } wireConn(n, r); });
+    }
     peer.on('error', e => {
       if (net !== n) return;
       if (e.type === 'unavailable-id' && tries < 3) { hostMatch(tries + 1); return; }
@@ -3200,19 +3250,23 @@
     const peer = n.peer = new Peer(PEER_OPTS);
     peer.on('call', onIncomingCall);
     const dial = () => { if (n.conn) n.conn.close(); wireConn(n, peer.connect('tbrawl-' + code, { reliable: true, serialization: 'json' })); };
-    peer.on('open', () => { if (net === n) dial(); });
+    peer.on('open', () => { if (net === n && !window.TB_RELAY_ONLY) dial(); }); // test hook: TB_RELAY_ONLY skips the direct link
     // show that it's still working, retry once, then give up with advice instead of hanging forever
     const t0 = Date.now();
     n.tick = setInterval(() => {
       if (net !== n || n.open) { clearInterval(n.tick); return; }
       const sec = Math.round((Date.now() - t0) / 1000);
-      if (sec === 10 && peer.open) { n.retried = true; dial(); }
+      if (sec === 5 && !n.relay && relayReady()) {
+        const r = n.relay = new RelayConn(code, 'guest'); n.retried = true;
+        r.on('open', () => { if (net !== n || n.open) { r.close(); return; } const old = n.conn; wireConn(n, r); try { if (old) old.close(); } catch (e) {} });
+      }
+      if (sec === 12 && peer.open && !n.open) dial();
       if (sec >= 25) {
         clearInterval(n.tick); closeNet(); syncStartBtn();
         netStatus(`Couldn't reach ${code}. Try again, or swap who hosts. School or work Wi-Fi often blocks games: home Wi-Fi or a phone hotspot usually works.`, 'err');
         return;
       }
-      netStatus(`Connecting to ${code}… ${sec}s${n.retried ? ' (trying another route)' : ''}`);
+      netStatus(`Connecting to ${code}… ${sec}s${n.retried ? ' (trying the backup route)' : ''}`);
     }, 1000);
     peer.on('error', e => {
       if (net !== n) return;
@@ -3222,13 +3276,17 @@
   }
   function wireConn(n, conn) {
     n.conn = conn;
-    conn.on('open', () => {
+    const onOpen = () => {
       if (net !== n || n.conn !== conn) return; // a replaced (retried) attempt
-      n.open = true;
+      n.open = true; n.viaRelay = !!conn.relay;
+      if (!conn.relay && n.relay) { n.relay.close(); n.relay = null; }
       sendHello();
-      netStatus(n.role === 'host' ? 'Your friend joined! Press <strong>Ring the bell</strong> to start.' : 'Connected! Waiting for the host to ring the bell…', 'ok');
+      const via = conn.relay ? ' <span style="opacity:.75">(backup route: voice chat is off, use WhatsApp or Discord to talk)</span>' : '';
+      netStatus((n.role === 'host' ? 'Your friend joined! Press <strong>Ring the bell</strong> to start.' : 'Connected! Waiting for the host to ring the bell…') + via, 'ok');
       syncStartBtn();
-    });
+    };
+    conn.on('open', onOpen);
+    if (conn.relay && conn.open) onOpen();
     conn.on('data', m => { if (net === n) onNet(m); });
     conn.on('close', () => { if (net === n && n.conn === conn) netLost(); });
     conn.on('error', () => { if (net === n && n.conn === conn && n.open) netLost(); });
@@ -3430,7 +3488,7 @@
     if (voice.audio) voice.audio.srcObject = null;
   }
   async function maybeStartVoice() {
-    if (!net || !net.open || net.role !== 'host' || !voice.on || !net.remoteVoice || voice.call) return;
+    if (!net || !net.open || net.viaRelay || net.role !== 'host' || !voice.on || !net.remoteVoice || voice.call) return;
     const s = await getMic();
     if (!s || !net || !net.open || voice.call) return;
     wireCall(net.peer.call(net.conn.peer, s));
@@ -4474,7 +4532,7 @@
       updateRef(dt);
       updateCrowd(dt, T);
       updateFx(dt);
-      if (hosting && net.open && game.state !== 'title' && now - net.lastSnap > 33) { net.lastSnap = now; sendSnap(); }
+      if (hosting && net.open && game.state !== 'title' && now - net.lastSnap > (net.viaRelay ? 50 : 33)) { net.lastSnap = now; sendSnap(); }
     }
 
     for (const w of [p1, p2]) if (w.cape) w.cape.step(game.state === 'paused' ? 0 : realDt);

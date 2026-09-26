@@ -1,7 +1,7 @@
 {
   "name": "turnbuckle-brawl",
   "productName": "Turnbuckle Brawl",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "3D pro-wrestling brawler with online multiplayer",
   "main": "main.js",
   "private": true,
@@ -46,6 +46,7 @@
   "devDependencies": {
     "electron": "^44.4.5",
     "electron-builder": "^26.15.3",
+    "mqtt": "^5.16.0",
     "peerjs": "^1.5.4",
     "puppeteer-core": "^25.12.0",
     "three": "^0.128.0"
