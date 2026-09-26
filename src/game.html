@@ -1307,20 +1307,20 @@
       CLASSIC.forEach(o => { o.visible = false; }); if (arenaObj) arenaObj.visible = false; ref.root.visible = false;
       // the arena's stage lights would paint the void floor: keep a soft key light on the fighters, drop the rest
       scene.children.forEach(o => { if (o.isLight && o !== hemi) { domainSaved.lights.push([o, o.intensity]); o.intensity *= o === spot ? .55 : (o === camKey || o === camRim) ? 1.15 : 0; } });
-      for (const w of weapons) if (!w.holder && w.mesh.visible) { w.mesh.visible = false; domainSaved.weps.push(w); }
       scene.background = new THREE.Color(0x000002); scene.fog = new THREE.Fog(0x000004, 40, 110); renderer.toneMappingExposure = 1.05;
       domainFx.g.visible = true; flash_(.9);
     } else if (!on && domainSaved) {
       const s = domainSaved; domainSaved = null;
       CLASSIC.forEach((o, i) => { o.visible = s.vis[i]; }); if (arenaObj) arenaObj.visible = s.arena; ref.root.visible = s.ref;
       for (const [l, v] of s.lights) l.intensity = v;
-      for (const w of s.weps) if (w.alive) w.mesh.visible = true;
+      for (const w of weapons) if (!w.holder) w.mesh.visible = !!w.alive;
       scene.background = s.bg; scene.fog = s.fog; renderer.toneMappingExposure = s.exp;
       domainFx.g.visible = false; flash_(.7);
     }
   }
   function updateDomainFx(dt) {
     if (!domainFx.g.visible) return;
+    for (const w of weapons) if (!w.holder) w.mesh.visible = false; // loose weapons stay behind in the ring (online snapshots re-show them)
     domainFx.stars.rotation.y += dt * .015; domainFx.galaxy.rotation.y += dt * .08;
     domainFx.rings.forEach((m, i) => { m.material.opacity = .35 + .3 * Math.sin(performance.now() / 500 - i * .9); m.rotation.z += dt * (i % 2 ? .1 : -.1); });
   }
