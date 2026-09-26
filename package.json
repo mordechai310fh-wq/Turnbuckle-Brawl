@@ -1,7 +1,7 @@
 {
   "name": "turnbuckle-brawl",
   "productName": "Turnbuckle Brawl",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "description": "3D pro-wrestling brawler with online multiplayer",
   "main": "main.js",
   "private": true,
