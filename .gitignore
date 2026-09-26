@@ -1,0 +1,16 @@
+# rebuilt by npm install / npm run pack / npm run installer
+node_modules/
+dist/
+app/
+
+# model work files, renders, backups and Blender sources (big; only the final models/*.glb are needed)
+models/work*/
+models/arena/
+models/*.json
+models/*.png
+models/*.txt
+*.blend
+*.blend1
+tools/__pycache__/
+__pycache__/
+models/tyson.glb

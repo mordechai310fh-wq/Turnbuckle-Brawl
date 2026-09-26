@@ -1,0 +1,53 @@
+{
+  "name": "turnbuckle-brawl",
+  "productName": "Turnbuckle Brawl",
+  "version": "1.5.1",
+  "description": "3D pro-wrestling brawler with online multiplayer",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "prepare-app": "node scripts/prepare.js",
+    "start": "electron .",
+    "dist": "node scripts/prepare.js && electron-builder --win portable",
+    "pack": "node scripts/pack.js",
+    "installer": "node scripts/pack.js && electron-builder --win nsis --prepackaged \"dist/Turnbuckle Brawl\""
+  },
+  "build": {
+    "appId": "local.turnbuckle.brawl",
+    "productName": "Turnbuckle Brawl",
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "directories": {
+      "output": "dist/installer"
+    },
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "TurnbuckleBrawl.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Turnbuckle Brawl",
+      "artifactName": "TurnbuckleBrawl-v${version}-Setup.exe",
+      "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "peerjs": "^1.5.4",
+    "puppeteer-core": "^25.12.0",
+    "three": "^0.128.0"
+  }
+}

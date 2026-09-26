@@ -1,0 +1,330 @@
+[
+ {
+  "id": "boxer",
+  "name": "The Boxer",
+  "file": "boxer.glb",
+  "boss": true,
+  "tag": "Quick hands, never stops moving.",
+  "stats": {
+   "speed": 1.15,
+   "dmg": 1.05,
+   "def": 1.0,
+   "cool": 0.7,
+   "kick": 0.0,
+   "sp": 1.1
+  },
+  "look": {
+   "skin": 9068347,
+   "tights": 1118481,
+   "boot": 1118481,
+   "accent": 16777215,
+   "bulk": 1.05,
+   "scale": 1,
+   "special": "combo"
+  },
+  "credit": "\"BOXER LIGHT 2\" by PONCHIK"
+ },
+ {
+  "id": "spidey_fortnite",
+  "name": "Spider-Man (Fortnite)",
+  "file": "spidey_fortnite.glb",
+  "boss": true,
+  "tag": "Brand New Day suit. Fast and slippery.",
+  "stats": {
+   "speed": 1.3,
+   "dmg": 0.9,
+   "def": 1.05,
+   "cool": 0.6,
+   "kick": 0.05,
+   "sp": 1.3
+  },
+  "look": {
+   "skin": 13127726,
+   "tights": 13111342,
+   "boot": 13111342,
+   "accent": 1848222,
+   "mask": 13111342,
+   "bulk": 0.95,
+   "scale": 1,
+   "special": "web"
+  },
+  "credit": "\"Spiderman Brand New Day from Fortnite\" by jimmyho905"
+ },
+ {
+  "id": "spidey_amazing",
+  "name": "Spider-Man",
+  "file": "spidey_amazing.glb",
+  "boss": true,
+  "tag": "Amazing Spider-Man 2 suit. Quick and tricky.",
+  "stats": {
+   "speed": 1.3,
+   "dmg": 0.95,
+   "def": 1.0,
+   "cool": 0.55,
+   "kick": 0.1,
+   "sp": 1.35
+  },
+  "look": {
+   "skin": 13111342,
+   "tights": 1848222,
+   "boot": 13111342,
+   "accent": 13111342,
+   "mask": 13111342,
+   "bulk": 0.95,
+   "scale": 1,
+   "special": "web"
+  },
+  "credit": "\"The Amazing Spider-Man 2 Spider-Man\" by fredbear1211"
+ },
+ {
+  "id": "goldberg",
+  "name": "Goldberg",
+  "file": "goldberg.glb",
+  "boss": true,
+  "tag": "Who's next? Barely feels a hit.",
+  "stats": {
+   "speed": 0.95,
+   "dmg": 1.35,
+   "def": 0.75,
+   "cool": 0.7,
+   "kick": 0.25,
+   "sp": 1.3
+  },
+  "look": {
+   "skin": 12950879,
+   "tights": 1118481,
+   "boot": 1118481,
+   "accent": 16777215,
+   "bulk": 1.35,
+   "scale": 1.08,
+   "special": "spear"
+  },
+  "credit": "\"WWE_GOLDBERG_2K22\" by RadioactiveAG"
+ },
+ {
+  "id": "messi",
+  "name": "Messi",
+  "file": "messi.glb",
+  "boss": true,
+  "tag": "Dances past you, then strikes fast.",
+  "stats": {
+   "speed": 1.3,
+   "dmg": 0.95,
+   "def": 1.0,
+   "cool": 0.6,
+   "kick": 0.1,
+   "sp": 1.3
+  },
+  "look": {
+   "skin": 14000000,
+   "tights": 11066341,
+   "boot": 16750899,
+   "accent": 16777215,
+   "hair": 3355443,
+   "bulk": 0.95,
+   "scale": 1,
+   "special": "ball"
+  },
+  "credit": "\"Lionel Messi of the Argentina\" by 3dUVpro"
+ },
+ {
+  "id": "scooby",
+  "name": "Scooby-Doo",
+  "file": "scooby.glb",
+  "boss": true,
+  "tag": "Scaredy dog. Hits harder than you think.",
+  "stats": {
+   "speed": 1.15,
+   "dmg": 1.1,
+   "def": 0.95,
+   "cool": 0.7,
+   "kick": 0.1,
+   "sp": 1.2
+  },
+  "look": {
+   "skin": 9127187,
+   "tights": 9127187,
+   "boot": 9127187,
+   "accent": 2263842,
+   "bulk": 1.0,
+   "scale": 1,
+   "special": "snack"
+  },
+  "credit": "\"Fortnite - Scooby Doo\" by 雨宮レン (oscar3dmodel)"
+ },
+ {
+  "id": "dingel",
+  "name": "Dingel",
+  "file": "dingel.glb",
+  "boss": true,
+  "tag": "All mouth. Long arms, weird reach.",
+  "stats": {
+   "speed": 1.0,
+   "dmg": 1.15,
+   "def": 0.9,
+   "cool": 0.75,
+   "kick": 0.1,
+   "sp": 1.4
+  },
+  "look": {
+   "skin": 13923681,
+   "tights": 3827610,
+   "boot": 13923681,
+   "accent": 16777215,
+   "bulk": 1.2,
+   "scale": 1,
+   "special": "doom"
+  },
+  "credit": "\"Dingel - Freebie\" by Valentin Winkelmann"
+ },
+ {
+  "id": "subzero",
+  "name": "Sub-Zero",
+  "file": "subzero.glb",
+  "boss": true,
+  "tag": "Ice-cold ninja. Fast kicks, freezing finisher.",
+  "stats": {
+   "speed": 1.2,
+   "dmg": 1.15,
+   "def": 0.9,
+   "cool": 0.55,
+   "kick": 0.2,
+   "sp": 1.5
+  },
+  "look": {
+   "skin": 13939348,
+   "tights": 1911936,
+   "boot": 1118481,
+   "accent": 3368652,
+   "mask": 1911936,
+   "bulk": 1.05,
+   "scale": 1,
+   "special": "ice"
+  },
+  "credit": "\"Sub-Zero (Mortal Kombat Armageddon)\" by linkuei"
+ },
+ {
+  "id": "luffy",
+  "name": "Luffy",
+  "file": "luffy.glb",
+  "boss": true,
+  "tag": "Rubber-armed pirate. Never stays down.",
+  "stats": {
+   "speed": 1.2,
+   "dmg": 1.15,
+   "def": 0.9,
+   "cool": 0.55,
+   "kick": 0.35,
+   "sp": 1.5
+  },
+  "look": {
+   "skin": 15318156,
+   "tights": 12722722,
+   "boot": 12722722,
+   "accent": 15125286,
+   "hair": 1118481,
+   "bulk": 1.0,
+   "scale": 1,
+   "guard": {
+    "s": -0.45,
+    "sz": 0.75,
+    "e": -1.75,
+    "twist": 0.05
+   },
+   "special": "gum"
+  },
+  "credit": "\"Monkey D Luffy - Wano Kimono - One Piece\" by MakeEz"
+ },
+ {
+  "id": "omniman",
+  "name": "Omni-Man",
+  "file": "omniman.glb",
+  "boss": true,
+  "tag": "Viltrumite. Brutally strong and barely feels a hit.",
+  "stats": {
+   "speed": 1.15,
+   "dmg": 1.4,
+   "def": 0.75,
+   "cool": 0.6,
+   "kick": 0.3,
+   "sp": 1.4
+  },
+  "look": {
+   "skin": 14007916,
+   "tights": 15658734,
+   "boot": 12587828,
+   "accent": 12587828,
+   "hair": 2236962,
+   "bulk": 1.15,
+   "scale": 1.03,
+   "guard": {
+    "s": -0.72,
+    "sz": 0.62,
+    "e": -1.9,
+    "twist": 0.02
+   },
+   "cape": {
+    "color": "#8e1a12",
+    "w": 0.32,
+    "len": 1.35,
+    "y": 0.9,
+    "z": -0.27,
+    "body": 1.25
+   },
+   "special": "omni"
+  },
+  "credit": "\"Omni-Man (Fortnite)\" by rocklee.ff123"
+ },
+ {
+  "id": "pennywise",
+  "name": "Pennywise",
+  "file": "pennywise.glb",
+  "boss": true,
+  "tag": "Creepy clown. Unpredictable and relentless.",
+  "stats": {
+   "speed": 1.1,
+   "dmg": 1.2,
+   "def": 0.9,
+   "cool": 0.5,
+   "kick": 0.2,
+   "sp": 1.6
+  },
+  "look": {
+   "skin": 15790320,
+   "tights": 13421772,
+   "boot": 14701138,
+   "accent": 14701138,
+   "hair": 14701138,
+   "bulk": 1.05,
+   "scale": 1.05,
+   "special": "clown"
+  },
+  "credit": "\"Pennywise animated low poly\" by vicente betoret ferrero"
+ },
+ {
+  "id": "gojo",
+  "name": "Gojo",
+  "file": "gojo.glb",
+  "boss": true,
+  "tag": "Final boss. The strongest. His Sky Drop charges fast.",
+  "stats": {
+   "speed": 1.2,
+   "dmg": 1.25,
+   "def": 0.8,
+   "cool": 0.5,
+   "kick": 0.3,
+   "sp": 1.9
+  },
+  "look": {
+   "skin": 15845284,
+   "tights": 1118481,
+   "boot": 1118481,
+   "accent": 7355568,
+   "hair": 15658734,
+   "bulk": 1.0,
+   "scale": 1.02,
+   "special": "hollow"
+  },
+  "credit": "\"Gojo jujutsu kaisen\" by Jujutsu_kaisen"
+ }
+]

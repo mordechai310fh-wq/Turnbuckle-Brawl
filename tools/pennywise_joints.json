@@ -1,0 +1,22 @@
+{
+  "Hips": [[0, 0, 60], [0, -1, 68], null],
+  "Spine": [[0, -1, 68], [0, -3, 80], "Hips"],
+  "Spine1": [[0, -3, 80], [0, -5, 90], "Spine"],
+  "Spine2": [[0, -5, 90], [0, -7, 99], "Spine1"],
+  "Neck": [[0, -7, 99], [0, -9, 105], "Spine2"],
+  "Head": [[0, -9, 105], [0, -11, 125], "Neck"],
+  "LeftShoulder": [[4, -6, 99], [14, -6, 101], "Spine2"],
+  "LeftArm": [[15, -6, 101], [22.5, -7, 87], "LeftShoulder"],
+  "LeftForeArm": [[22.5, -7, 87], [27.5, -8, 68.6], "LeftArm"],
+  "LeftHand": [[27.5, -8, 68.6], [28, -9, 56], "LeftForeArm"],
+  "LeftUpLeg": [[8, 0, 60], [11, -1, 31.7], "Hips"],
+  "LeftLeg": [[11, -1, 31.7], [12, 0, 7], "LeftUpLeg"],
+  "LeftFoot": [[12, 0, 7], [12, -9, 1], "LeftLeg"],
+  "RightShoulder": [[-4, -6, 99], [-14, -6, 101], "Spine2"],
+  "RightArm": [[-15, -6, 101], [-22.5, -7, 87], "RightShoulder"],
+  "RightForeArm": [[-22.5, -7, 87], [-27.5, -8, 68.6], "RightArm"],
+  "RightHand": [[-27.5, -8, 68.6], [-28, -9, 56], "RightForeArm"],
+  "RightUpLeg": [[-8, 0, 60], [-11, -1, 31.7], "Hips"],
+  "RightLeg": [[-11, -1, 31.7], [-12, 0, 7], "RightUpLeg"],
+  "RightFoot": [[-12, 0, 7], [-12, -9, 1], "RightLeg"]
+}
