@@ -3160,9 +3160,16 @@
     if (!net) return;
     endCall();
     const n = net; net = null;
+    clearInterval(n.tick); clearTimeout(n.slow);
     try { if (n.conn) n.conn.close(); } catch (e) {}
     try { if (n.peer) n.peer.destroy(); } catch (e) {}
   }
+  // several STUN servers find a direct route between two homes faster; the TURN relays carry the match when no direct route exists
+  const PEER_OPTS = { debug: 0, config: { sdpSemantics: 'unified-plan', iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  ] } };
   const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const newCode = () => Array.from({ length: 5 }, () => CODE_CHARS[(Math.random() * CODE_CHARS.length) | 0]).join('');
   const netErr = e => (e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error')
@@ -3173,9 +3180,10 @@
     const code = newCode();
     const n = net = { role: 'host', code, open: false, input: { ...EMPTY }, remoteCfg: null, lastSnap: 0 };
     netStatus('Opening a room…'); syncStartBtn();
-    const peer = n.peer = new Peer('tbrawl-' + code, { debug: 0 });
+    const peer = n.peer = new Peer('tbrawl-' + code, PEER_OPTS);
     peer.on('call', onIncomingCall);
-    peer.on('open', () => { if (net === n) netStatus(`Your room code<span class="code">${code}</span>Send it to your friend, then wait here for them to join.`); });
+    peer.on('open', () => { if (net === n) { clearTimeout(n.slow); netStatus(`Your room code<span class="code">${code}</span>Send it to your friend, then wait here for them to join.`); } });
+    n.slow = setTimeout(() => { if (net === n && !peer.open) netStatus('The matchmaking server is slow right now, still opening your room…'); }, 6000);
     peer.on('connection', conn => { if (net !== n || n.conn) { conn.close(); return; } wireConn(n, conn); });
     peer.on('error', e => {
       if (net !== n) return;
@@ -3189,26 +3197,41 @@
     initAudio(); closeNet();
     const n = net = { role: 'guest', code, open: false, remoteCfg: null, snap: null, fresh: false };
     netStatus(`Connecting to ${code}…`); syncStartBtn();
-    const peer = n.peer = new Peer({ debug: 0 });
+    const peer = n.peer = new Peer(PEER_OPTS);
     peer.on('call', onIncomingCall);
-    peer.on('open', () => { if (net === n) wireConn(n, peer.connect('tbrawl-' + code, { reliable: true, serialization: 'json' })); });
+    const dial = () => { if (n.conn) n.conn.close(); wireConn(n, peer.connect('tbrawl-' + code, { reliable: true, serialization: 'json' })); };
+    peer.on('open', () => { if (net === n) dial(); });
+    // show that it's still working, retry once, then give up with advice instead of hanging forever
+    const t0 = Date.now();
+    n.tick = setInterval(() => {
+      if (net !== n || n.open) { clearInterval(n.tick); return; }
+      const sec = Math.round((Date.now() - t0) / 1000);
+      if (sec === 10 && peer.open) { n.retried = true; dial(); }
+      if (sec >= 25) {
+        clearInterval(n.tick); closeNet(); syncStartBtn();
+        netStatus(`Couldn't reach ${code}. Try again, or swap who hosts. School or work Wi-Fi often blocks games: home Wi-Fi or a phone hotspot usually works.`, 'err');
+        return;
+      }
+      netStatus(`Connecting to ${code}… ${sec}s${n.retried ? ' (trying another route)' : ''}`);
+    }, 1000);
     peer.on('error', e => {
       if (net !== n) return;
+      clearInterval(n.tick);
       netStatus(e.type === 'peer-unavailable' ? `No room found with code ${code}. Make sure your friend clicked <strong>Host a match</strong> and the code matches.` : netErr(e), 'err');
     });
   }
   function wireConn(n, conn) {
     n.conn = conn;
     conn.on('open', () => {
-      if (net !== n) return;
+      if (net !== n || n.conn !== conn) return; // a replaced (retried) attempt
       n.open = true;
       sendHello();
       netStatus(n.role === 'host' ? 'Your friend joined! Press <strong>Ring the bell</strong> to start.' : 'Connected! Waiting for the host to ring the bell…', 'ok');
       syncStartBtn();
     });
     conn.on('data', m => { if (net === n) onNet(m); });
-    conn.on('close', () => { if (net === n) netLost(); });
-    conn.on('error', () => { if (net === n) netLost(); });
+    conn.on('close', () => { if (net === n && n.conn === conn) netLost(); });
+    conn.on('error', () => { if (net === n && n.conn === conn && n.open) netLost(); });
   }
   function netLost() {
     const inMatch = game.state !== 'title';
